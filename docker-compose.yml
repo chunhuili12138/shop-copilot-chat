@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  chat:
+    build: .
+    container_name: shop-copilot-chat
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=http://ai-service:8000
+    networks:
+      - shop-network
+    restart: unless-stopped
+
+networks:
+  shop-network:
+    external: true
