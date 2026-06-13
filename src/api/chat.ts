@@ -137,5 +137,10 @@ export async function executeConfirm(
     body: JSON.stringify({ action, params }),
   })
   
+  if (!response.ok) {
+    const errText = await response.text().catch(() => response.statusText)
+    throw new Error(`操作失败 (${response.status}): ${errText}`)
+  }
+  
   return response.json()
 }

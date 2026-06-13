@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, reactive, watch } from 'vue'
 import type { Message, Session, SSEData, ConfirmData, Step } from '@/types/chat'
-import { createSSEConnection, executeConfirm, type SSECallbacks } from '@/api/chat'
+import { createSSEConnection, executeConfirm } from '@/api/chat'
 import { getSessions, createSession, deleteSession, getSessionHistory } from '@/api/session'
 
 // localStorage key 前缀
