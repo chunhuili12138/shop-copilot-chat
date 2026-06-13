@@ -65,6 +65,7 @@ watch(() => props.quickQuestionText, (val) => {
     text.value = val
     nextTick(() => {
       textareaRef.value?.focus()
+      adjustTextareaHeight()
     })
   }
 })
@@ -72,6 +73,19 @@ watch(() => props.quickQuestionText, (val) => {
 // 计算实际 placeholder
 const actualPlaceholder = computed(() => {
   return props.placeholder || '输入消息... (Enter 发送，Shift+Enter 换行)'
+})
+
+// 自动调整 textarea 高度
+function adjustTextareaHeight() {
+  const el = textareaRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+// 监听输入内容变化，自动调整高度
+watch(text, () => {
+  nextTick(adjustTextareaHeight)
 })
 
 // 发送消息

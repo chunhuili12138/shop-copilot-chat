@@ -23,7 +23,7 @@
             class="delete-btn"
             title="删除会话"
           >
-            <span>🗑️</span>
+            <el-icon :size="14"><Delete /></el-icon>
           </button>
         </div>
       </div>
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { Delete } from '@element-plus/icons-vue'
 import type { Session } from '@/types/chat'
 
 defineProps<{

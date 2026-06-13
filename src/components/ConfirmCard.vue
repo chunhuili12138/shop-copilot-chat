@@ -1,7 +1,7 @@
 <template>
   <div class="confirm-card">
     <div class="confirm-header">
-      <span class="icon">⚠️</span>
+      <el-icon class="icon" :size="18" color="#d46b08"><WarningFilled /></el-icon>
       <span class="title">{{ confirmData.title }}</span>
     </div>
     <div class="confirm-body">
@@ -18,26 +18,41 @@
       </div>
     </div>
     <div class="confirm-footer">
-      <button class="cancel-btn" @click="$emit('confirm', false)">
+      <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="confirming">
         取消
       </button>
-      <button class="confirm-btn" @click="$emit('confirm', true)">
-        确认
+      <button
+        class="confirm-btn"
+        @click="handleConfirm"
+        :disabled="confirming"
+      >
+        <el-icon v-if="confirming" class="is-loading"><Loading /></el-icon>
+        {{ confirming ? '处理中...' : '确认' }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { WarningFilled, Loading } from '@element-plus/icons-vue'
 import type { ConfirmData } from '@/types/chat'
 
 defineProps<{
   confirmData: ConfirmData
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   confirm: [approved: boolean]
 }>()
+
+const confirming = ref(false)
+
+function handleConfirm() {
+  if (confirming.value) return
+  confirming.value = true
+  emit('confirm', true)
+}
 </script>
 
 <style scoped lang="scss">
@@ -56,10 +71,6 @@ defineEmits<{
   padding: var(--chat-spacing-md) var(--chat-spacing-lg);
   background: #fff7e6;
   border-bottom: 1px solid #ffe7ba;
-
-  .icon {
-    font-size: 18px;
-  }
 
   .title {
     font-size: 14px;
@@ -110,10 +121,18 @@ defineEmits<{
 
 .cancel-btn,
 .confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: var(--chat-spacing-sm) var(--chat-spacing-lg);
   border-radius: var(--chat-radius);
   cursor: pointer;
   font-size: 14px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .cancel-btn {
@@ -121,7 +140,7 @@ defineEmits<{
   border: 1px solid var(--chat-border);
   color: var(--chat-text);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--chat-bg);
   }
 }
@@ -131,7 +150,7 @@ defineEmits<{
   border: 1px solid var(--chat-primary);
   color: white;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--chat-primary-dark);
   }
 }

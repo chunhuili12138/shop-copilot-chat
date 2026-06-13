@@ -28,11 +28,14 @@
 
       <!-- 图片 -->
       <div v-if="message.images?.length" class="images">
-        <img
+        <el-image
           v-for="(img, index) in message.images"
           :key="index"
           :src="img"
-          @click="previewImage(img)"
+          :preview-src-list="message.images"
+          :initial-index="index"
+          fit="cover"
+          class="message-image"
         />
       </div>
 
@@ -78,11 +81,6 @@ const formattedTime = computed(() => {
     minute: '2-digit',
   })
 })
-
-// 预览图片
-function previewImage(url: string) {
-  window.open(url, '_blank')
-}
 
 // 重试
 function handleRetry() {
@@ -170,16 +168,11 @@ function handleRetry() {
   gap: var(--chat-spacing-sm);
   margin-top: var(--chat-spacing-sm);
 
-  img {
+  .message-image {
     max-width: 200px;
     max-height: 200px;
     border-radius: var(--chat-radius);
     cursor: pointer;
-    object-fit: cover;
-
-    &:hover {
-      opacity: 0.8;
-    }
   }
 }
 
