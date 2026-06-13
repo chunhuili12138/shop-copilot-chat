@@ -13,6 +13,7 @@ import './styles/index.scss'
 // 应用实例
 let app: App | null = null
 let container: HTMLElement | null = null
+let messageHandler: ((event: MessageEvent) => void) | null = null
 
 // 初始化选项
 interface InitOptions {
@@ -55,6 +56,22 @@ function init(options: InitOptions = {}) {
   // 挂载
   app.mount(container)
 
+  // 监听 postMessage 事件（支持 show/hide/update）
+  messageHandler = (event: MessageEvent) => {
+    if (!event.data || typeof event.data !== 'object') return
+    const { type, data } = event.data
+
+    if (type === 'shop-copilot:show' && container) {
+      container.style.display = 'block'
+    } else if (type === 'shop-copilot:hide' && container) {
+      container.style.display = 'none'
+    } else if (type === 'shop-copilot:update' && data) {
+      // 更新配置（重新初始化）
+      init({ ...options, ...data })
+    }
+  }
+  window.addEventListener('message', messageHandler)
+
   console.log('[ShopCopilot] 初始化完成')
 }
 
@@ -62,7 +79,6 @@ function init(options: InitOptions = {}) {
  * 显示店铺助手
  */
 function show() {
-  // 触发显示事件
   window.postMessage({ type: 'shop-copilot:show' }, '*')
 }
 
@@ -70,7 +86,6 @@ function show() {
  * 隐藏店铺助手
  */
 function hide() {
-  // 触发隐藏事件
   window.postMessage({ type: 'shop-copilot:hide' }, '*')
 }
 
@@ -78,6 +93,11 @@ function hide() {
  * 销毁店铺助手
  */
 function destroy() {
+  // 清理 postMessage 监听器
+  if (messageHandler) {
+    window.removeEventListener('message', messageHandler)
+    messageHandler = null
+  }
   if (app) {
     app.unmount()
     app = null
@@ -94,7 +114,6 @@ function destroy() {
  * @param options 新的配置选项
  */
 function update(options: Partial<InitOptions>) {
-  // 触发更新事件
   window.postMessage({ type: 'shop-copilot:update', data: options }, '*')
 }
 

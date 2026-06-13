@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, reactive, watch } from 'vue'
 import type { Message, Session, SSEData, ConfirmData, Step } from '@/types/chat'
-import { createSSEConnection, executeConfirm } from '@/api/chat'
+import { createSSEConnection, executeConfirm, type SSECallbacks } from '@/api/chat'
 import { getSessions, createSession, deleteSession, getSessionHistory } from '@/api/session'
 
 // localStorage key 前缀
@@ -41,18 +41,6 @@ export const useChatStore = defineStore('chat', () => {
   // 获取带店铺隔离的 localStorage key
   function getStorageKey() {
     return `${STORAGE_KEY_PREFIX}session_${shopId.value || 'default'}`
-  }
-
-  // 从 localStorage 恢复 currentSessionId
-  function restoreSessionId() {
-    try {
-      const saved = localStorage.getItem(getStorageKey())
-      if (saved) {
-        currentSessionId.value = saved
-      }
-    } catch (e) {
-      console.warn('恢复会话ID失败:', e)
-    }
   }
 
   // 保存 currentSessionId 到 localStorage
@@ -163,11 +151,40 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // 当前 SSE 连接（用于取消）
+  let currentSSEConnection: { close: () => void } | null = null
+  // 当前打字机定时器（用于清理）
+  let activeTypewriterTimer: ReturnType<typeof setInterval> | null = null
+
+  /**
+   * 清理打字机定时器
+   */
+  function cleanupTypewriter() {
+    if (activeTypewriterTimer) {
+      clearInterval(activeTypewriterTimer)
+      activeTypewriterTimer = null
+    }
+  }
+
+  /**
+   * 取消当前 SSE 连接
+   */
+  function cancelCurrentSSE() {
+    if (currentSSEConnection) {
+      currentSSEConnection.close()
+      currentSSEConnection = null
+    }
+    cleanupTypewriter()
+  }
+
   // 发送消息
   async function sendMessage(message: string, imageUrl?: string) {
     if (!currentSessionId.value) {
       await handleCreateSession()
     }
+
+    // 清理上一次的定时器和连接
+    cancelCurrentSSE()
 
     isLoading.value = true
     currentConfirm.value = null
@@ -194,11 +211,10 @@ export const useChatStore = defineStore('chat', () => {
 
     // 打字机效果：缓冲 SSE 文本，每 100ms 渲染一小段
     let pendingBuffer = ''
-    let typewriterTimer: ReturnType<typeof setInterval> | null = null
 
     function startTypewriter() {
-      if (typewriterTimer) return
-      typewriterTimer = setInterval(() => {
+      if (activeTypewriterTimer) return
+      activeTypewriterTimer = setInterval(() => {
         if (pendingBuffer.length === 0) return
         const chunkSize = 5
         const charsToShow = Math.min(chunkSize, pendingBuffer.length)
@@ -208,94 +224,81 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     function flushBuffer() {
-      if (typewriterTimer) {
-        clearInterval(typewriterTimer)
-        typewriterTimer = null
-      }
+      cleanupTypewriter()
       if (pendingBuffer.length > 0) {
         assistantMessage.content += pendingBuffer
         pendingBuffer = ''
       }
     }
 
-    // 连接 SSE
-    const eventSource = createSSEConnection(message, currentSessionId.value!, imageUrl)
+    // 连接 SSE（POST + ReadableStream，token 通过 Header 传递）
+    currentSSEConnection = createSSEConnection(
+      message,
+      currentSessionId.value!,
+      {
+        onMessage: (data: SSEData) => {
+          switch (data.type) {
+            case 'thinking':
+            case 'processing':
+            case 'tool_result':
+              assistantMessage.steps!.push({
+                type: data.type as Step['type'],
+                content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content),
+                step: data.step,
+                done: data.done,
+              })
+              break
+            case 'answer':
+              if (typeof data.content === 'string') {
+                pendingBuffer += data.content
+                startTypewriter()
+              }
+              break
+            case 'data':
+              flushBuffer()
+              if (typeof data.content === 'object') {
+                assistantMessage.content = JSON.stringify(data.content)
+              } else if (typeof data.content === 'string') {
+                assistantMessage.content = data.content
+              }
+              break
+            case 'confirm':
+              currentConfirm.value = data.content as ConfirmData
+              break
+            case 'done':
+              flushBuffer()
+              if (assistantMessage.steps && assistantMessage.steps.length > 0) {
+                const lastStep = assistantMessage.steps[assistantMessage.steps.length - 1]
+                lastStep.done = true
+              }
+              isLoading.value = false
+              currentSSEConnection = null
+              break
+            case 'error':
+              flushBuffer()
+              if (assistantMessage.steps && assistantMessage.steps.length > 0) {
+                const lastStep = assistantMessage.steps[assistantMessage.steps.length - 1]
+                lastStep.done = true
+              }
+              assistantMessage.content = `❌ ${data.content}`
+              isLoading.value = false
+              currentSSEConnection = null
+              break
+          }
+        },
+        onError: (error: Error) => {
+          console.error('SSE error:', error)
+          flushBuffer()
+          isLoading.value = false
+          currentSSEConnection = null
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as SSEData
-        
-        switch (data.type) {
-          case 'thinking':
-          case 'processing':
-          case 'tool_result':
-            assistantMessage.steps!.push({
-              type: data.type as Step['type'],
-              content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content),
-              step: data.step,
-              done: data.done,
-            })
-            break
-          case 'answer':
-            if (typeof data.content === 'string') {
-              pendingBuffer += data.content
-              startTypewriter()
-            }
-            break
-          case 'data':
-            flushBuffer()
-            if (typeof data.content === 'object') {
-              assistantMessage.content = JSON.stringify(data.content)
-            } else if (typeof data.content === 'string') {
-              assistantMessage.content = data.content
-            }
-            break
-          case 'confirm':
-            currentConfirm.value = data.content as ConfirmData
-            break
-          case 'done':
-            flushBuffer()
-            // 标记最后一步为已完成
-            if (assistantMessage.steps && assistantMessage.steps.length > 0) {
-              const lastStep = assistantMessage.steps[assistantMessage.steps.length - 1]
-              lastStep.done = true
-            }
-            isLoading.value = false
-            eventSource.close()
-            break
-          case 'error':
-            flushBuffer()
-            // 标记最后一步为已完成
-            if (assistantMessage.steps && assistantMessage.steps.length > 0) {
-              const lastStep = assistantMessage.steps[assistantMessage.steps.length - 1]
-              lastStep.done = true
-            }
-            assistantMessage.content = `❌ ${data.content}`
-            isLoading.value = false
-            eventSource.close()
-            break
-        }
-      } catch (e) {
-        console.error('SSE parse error:', e)
-      }
-    }
-
-    eventSource.onerror = (event) => {
-      // 网络错误时关闭连接，避免自动重连导致异常状态
-      console.error('SSE error:', event)
-      isLoading.value = false
-      eventSource.close()
-      
-      // 检查是否是认证错误（401）
-      if (eventSource.readyState === EventSource.CLOSED) {
-        // 尝试加载会话列表来检测认证状态
-        getSessions().catch((error) => {
-          if (error?.response?.status === 401 || error?.message?.includes('401')) {
+          if (error.message.includes('401') || error.message.includes('Unauthorized')) {
             authError.value = '店铺助手接口认证失败，请重新登录'
           }
-        })
-      }
-    }
+        },
+      },
+      imageUrl,
+    )
   }
 
   // 确认操作
@@ -376,7 +379,7 @@ export const useChatStore = defineStore('chat', () => {
     handleConfirm,
     toggleFullscreen,
     toggleSessionList,
-    restoreSessionId,
     saveSessionId,
+    cancelCurrentSSE,
   }
 })

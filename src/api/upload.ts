@@ -16,10 +16,10 @@ export async function uploadFile(file: File): Promise<{
   type?: string
 }> {
   const store = useChatStore()
-  
+
   const formData = new FormData()
   formData.append('file', file)
-  
+
   const response = await axios.post(`${BASE_URL}/api/upload/file`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -27,6 +27,12 @@ export async function uploadFile(file: File): Promise<{
     },
     timeout: 30000,
   })
-  
-  return response.data
+
+  // 统一解包 { success, data } 格式
+  const res = response.data
+  if (res && typeof res === 'object' && 'success' in res) {
+    if (res.success) return res.data
+    throw new Error(res.msg || '上传失败')
+  }
+  return res
 }
