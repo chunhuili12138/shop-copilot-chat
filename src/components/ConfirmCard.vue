@@ -6,6 +6,8 @@
     </div>
     <div class="confirm-body">
       <div class="message">{{ confirmData.message }}</div>
+
+      <!-- 静态详情 -->
       <div class="details">
         <div
           v-for="(value, key) in confirmData.details"
@@ -16,42 +18,118 @@
           <span class="value">{{ value }}</span>
         </div>
       </div>
+
+      <!-- 动态表单字段 -->
+      <div v-if="confirmData.fields?.length" class="form-fields">
+        <div
+          v-for="field in visibleFields"
+          :key="field.name"
+          class="field-item"
+        >
+          <label class="field-label">
+            {{ field.label || field.name }}
+            <span v-if="field.required" class="required">*</span>
+          </label>
+          <el-input
+            v-if="field.type === 'input'"
+            v-model="formData[field.name]"
+            :placeholder="field.placeholder || ''"
+            size="default"
+          />
+          <el-input
+            v-else-if="field.type === 'textarea'"
+            v-model="formData[field.name]"
+            type="textarea"
+            :rows="3"
+            :placeholder="field.placeholder || ''"
+          />
+        </div>
+      </div>
     </div>
+
     <div class="confirm-footer">
       <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="confirming">
-        取消
+        {{ cancelLabel }}
       </button>
       <button
         class="confirm-btn"
         @click="handleConfirm"
-        :disabled="confirming"
+        :disabled="confirming || !isFormValid"
       >
         <el-icon v-if="confirming" class="is-loading"><Loading /></el-icon>
-        {{ confirming ? '处理中...' : '确认' }}
+        {{ confirming ? '处理中...' : confirmLabel }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { WarningFilled, Loading } from '@element-plus/icons-vue'
-import type { ConfirmData } from '@/types/chat'
+import type { ConfirmData, ConfirmField } from '@/types/chat'
 
-defineProps<{
+const props = defineProps<{
   confirmData: ConfirmData
 }>()
 
 const emit = defineEmits<{
-  confirm: [approved: boolean]
+  confirm: [approved: boolean, formData?: Record<string, any>]
 }>()
 
 const confirming = ref(false)
+const formData = ref<Record<string, string>>({})
 
+// 初始化表单数据
+onMounted(() => {
+  if (props.confirmData.fields) {
+    for (const field of props.confirmData.fields) {
+      formData.value[field.name] = field.value ?? ''
+    }
+  }
+  // 合并 hidden 字段的默认值
+  if (props.confirmData.fields) {
+    for (const field of props.confirmData.fields) {
+      if (field.type === 'hidden' && field.value !== undefined) {
+        formData.value[field.name] = String(field.value)
+      }
+    }
+  }
+})
+
+// 可见字段（排除 hidden）
+const visibleFields = computed(() => {
+  return (props.confirmData.fields || []).filter(f => f.type !== 'hidden')
+})
+
+// 按钮文案
+const confirmLabel = computed(() => {
+  return props.confirmData.buttons?.find(b => b.type === 'confirm')?.label || '确认'
+})
+const cancelLabel = computed(() => {
+  return props.confirmData.buttons?.find(b => b.type === 'cancel')?.label || '取消'
+})
+
+// 表单校验
+const isFormValid = computed(() => {
+  if (!props.confirmData.fields) return true
+  for (const field of props.confirmData.fields) {
+    if (field.required && !formData.value[field.name]?.trim()) {
+      return false
+    }
+  }
+  return true
+})
+
+// 提交
 function handleConfirm() {
-  if (confirming.value) return
+  if (confirming.value || !isFormValid.value) return
   confirming.value = true
-  emit('confirm', true)
+  // 合并表单数据（含 hidden 字段）
+  const data: Record<string, any> = {}
+  for (const [key, value] of Object.entries(formData.value)) {
+    data[key] = value
+  }
+  emit('confirm', true, data)
 }
 </script>
 
@@ -93,6 +171,7 @@ function handleConfirm() {
   background: var(--chat-bg);
   padding: var(--chat-spacing-md);
   border-radius: var(--chat-radius);
+  margin-bottom: var(--chat-spacing-md);
 }
 
 .detail-item {
@@ -108,6 +187,28 @@ function handleConfirm() {
 
   .value {
     color: var(--chat-text);
+  }
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-spacing-md);
+}
+
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: var(--chat-text-secondary);
+
+  .required {
+    color: #f56c6c;
+    margin-left: 2px;
   }
 }
 

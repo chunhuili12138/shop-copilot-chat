@@ -42,11 +42,30 @@ export interface SSEData {
   done: boolean
 }
 
+/** 表单字段定义 */
+export interface ConfirmField {
+  name: string
+  type: 'input' | 'textarea' | 'hidden'
+  label?: string
+  required?: boolean
+  placeholder?: string
+  value?: any
+}
+
+/** 按钮定义 */
+export interface ConfirmButton {
+  type: 'confirm' | 'cancel'
+  label: string
+}
+
 export interface ConfirmData {
   type: 'confirm'
+  tool_name?: string
   title: string
   message: string
   details: Record<string, string>
+  fields?: ConfirmField[]
+  buttons?: ConfirmButton[]
   action: string
   params: Record<string, any>
 }

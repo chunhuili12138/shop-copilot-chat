@@ -44,7 +44,7 @@
         <ConfirmCard
           v-if="store.currentConfirm"
           :confirm-data="store.currentConfirm"
-          @confirm="store.handleConfirm"
+          @confirm="(approved, formData) => store.handleConfirm(approved, formData)"
         />
 
         <!-- 快捷问题 -->

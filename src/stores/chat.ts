@@ -302,18 +302,20 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 确认操作
-  async function handleConfirm(approved: boolean) {
+  async function handleConfirm(approved: boolean, formData?: Record<string, any>) {
     if (!currentConfirm.value) return
 
     if (approved) {
       isLoading.value = true
-      
+
       try {
+        // 合并表单数据到 params
+        const params = { ...currentConfirm.value.params, ...formData }
         const result = await executeConfirm(
           currentConfirm.value.action,
-          currentConfirm.value.params
+          params
         )
-        
+
         const resultMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
