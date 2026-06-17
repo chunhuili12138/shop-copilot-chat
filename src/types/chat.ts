@@ -36,7 +36,7 @@ export interface QuickQuestion {
 }
 
 export interface SSEData {
-  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'data' | 'done' | 'error' | 'confirm'
+  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'data' | 'done' | 'error' | 'confirm' | 'select'
   content: any
   step: string
   done: boolean
@@ -68,6 +68,23 @@ export interface ConfirmData {
   buttons?: ConfirmButton[]
   action: string
   params: Record<string, any>
+}
+
+/** 多选列表项 */
+export interface SelectItem {
+  id: number
+  [key: string]: any
+}
+
+/** 多选列表数据 */
+export interface SelectData {
+  tool_name: string
+  title: string
+  message: string
+  items: SelectItem[]
+  fields?: ConfirmField[]
+  buttons?: ConfirmButton[]
+  action: string
 }
 
 export interface FileInfo {

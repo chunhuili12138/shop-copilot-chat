@@ -47,6 +47,14 @@
           @confirm="(approved, formData) => store.handleConfirm(approved, formData)"
         />
 
+        <!-- 多选列表 -->
+        <SelectCard
+          v-if="store.currentSelect"
+          :select-data="store.currentSelect"
+          @confirm="(selectedIds, formData) => store.handleSelect(selectedIds, formData)"
+          @cancel="store.currentSelect = null"
+        />
+
         <!-- 快捷问题 -->
         <QuickQuestions
           v-if="store.showQuickQuestions && store.messages.length === 0 && !store.authError"
@@ -81,6 +89,7 @@ import type { Message } from '@/types/chat'
 import SessionList from './SessionList.vue'
 import MessageList from './MessageList.vue'
 import ConfirmCard from './ConfirmCard.vue'
+import SelectCard from './SelectCard.vue'
 import QuickQuestions from './QuickQuestions.vue'
 import MessageInput from './MessageInput.vue'
 

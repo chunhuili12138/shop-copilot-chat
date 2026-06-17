@@ -1,8 +1,8 @@
 // stores/chat.ts
 import { defineStore } from 'pinia'
 import { ref, computed, reactive, watch } from 'vue'
-import type { Message, Session, SSEData, ConfirmData, Step } from '@/types/chat'
-import { createSSEConnection, executeConfirm } from '@/api/chat'
+import type { Message, Session, SSEData, ConfirmData, SelectData, Step } from '@/types/chat'
+import { createSSEConnection, executeConfirm, executeSelect } from '@/api/chat'
 import { getSessions, createSession, deleteSession, getSessionHistory } from '@/api/session'
 
 // localStorage key 前缀
@@ -18,6 +18,7 @@ export const useChatStore = defineStore('chat', () => {
   const showSessionList = ref(true)
   const showQuickQuestions = ref(true)
   const currentConfirm = ref<ConfirmData | null>(null)
+  const currentSelect = ref<SelectData | null>(null)
   const authError = ref<string | null>(null)  // 认证错误状态
 
   // 用户信息
@@ -265,6 +266,9 @@ export const useChatStore = defineStore('chat', () => {
             case 'confirm':
               currentConfirm.value = data.content as ConfirmData
               break
+            case 'select':
+              currentSelect.value = data.content as SelectData
+              break
             case 'done':
               flushBuffer()
               if (assistantMessage.steps && assistantMessage.steps.length > 0) {
@@ -340,6 +344,41 @@ export const useChatStore = defineStore('chat', () => {
     currentConfirm.value = null
   }
 
+  // 多选确认操作
+  async function handleSelect(selectedIds: number[], formData?: Record<string, any>) {
+    if (!currentSelect.value || selectedIds.length === 0) return
+
+    isLoading.value = true
+
+    try {
+      const result = await executeSelect(
+        currentSelect.value.action,
+        selectedIds,
+        formData || {}
+      )
+
+      const resultMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: result.message || '操作完成',
+        timestamp: Date.now(),
+      }
+      messages.value.push(resultMessage)
+    } catch (error) {
+      console.error('多选操作失败:', error)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '操作失败，请重试',
+        timestamp: Date.now(),
+      }
+      messages.value.push(errorMessage)
+    } finally {
+      isLoading.value = false
+      currentSelect.value = null
+    }
+  }
+
   // 切换全屏
   function toggleFullscreen() {
     isFullscreen.value = !isFullscreen.value
@@ -360,6 +399,7 @@ export const useChatStore = defineStore('chat', () => {
     showSessionList,
     showQuickQuestions,
     currentConfirm,
+    currentSelect,
     authError,
     token,
     shopId,
@@ -379,6 +419,7 @@ export const useChatStore = defineStore('chat', () => {
     loadHistory,
     sendMessage,
     handleConfirm,
+    handleSelect,
     toggleFullscreen,
     toggleSessionList,
     saveSessionId,

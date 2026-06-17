@@ -144,3 +144,35 @@ export async function executeConfirm(
   
   return response.json()
 }
+
+/**
+ * 执行多选确认操作
+ */
+export async function executeSelect(
+  action: string,
+  selectedIds: number[],
+  params: Record<string, any>
+): Promise<any> {
+  const store = useChatStore()
+  
+  const response = await fetch(`${BASE_URL}/api/chat/select`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer-${store.shopId}-${store.token}`,
+    },
+    body: JSON.stringify({
+      action,
+      selected_ids: selectedIds,
+      params,
+      session_id: store.currentSessionId,
+    }),
+  })
+  
+  if (!response.ok) {
+    const errText = await response.text().catch(() => response.statusText)
+    throw new Error(`操作失败 (${response.status}): ${errText}`)
+  }
+  
+  return response.json()
+}
