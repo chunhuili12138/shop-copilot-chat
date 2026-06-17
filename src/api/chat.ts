@@ -134,7 +134,7 @@ export async function executeConfirm(
       'Content-Type': 'application/json',
       'Authorization': `Bearer-${store.shopId}-${store.token}`,
     },
-    body: JSON.stringify({ action, params }),
+    body: JSON.stringify({ action, params, session_id: store.currentSessionId }),
   })
   
   if (!response.ok) {
