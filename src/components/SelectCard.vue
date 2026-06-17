@@ -7,38 +7,7 @@
     <div class="select-body">
       <div class="message">{{ selectData.message }}</div>
 
-      <!-- 选择列表 -->
-      <div class="items">
-        <label
-          v-for="item in selectData.items"
-          :key="item.id"
-          class="item"
-          :class="{ selected: selectedIds.includes(item.id) }"
-        >
-          <input
-            type="checkbox"
-            :value="item.id"
-            v-model="selectedIds"
-          />
-          <div class="item-info">
-            <span class="item-name">{{ item.nickname || item.customer_name || '未知' }}</span>
-            <span class="item-detail">{{ item.package_name || '' }}</span>
-            <span class="item-amount" v-if="item.refund_amount">¥{{ item.refund_amount }}</span>
-            <span class="item-reason" v-if="item.reason">{{ item.reason }}</span>
-          </div>
-        </label>
-      </div>
-
-      <!-- 全选/取消全选 -->
-      <div class="select-all">
-        <label>
-          <input type="checkbox" :checked="isAllSelected" @change="toggleAll" />
-          全选
-        </label>
-        <span class="count">已选 {{ selectedIds.length }} / {{ selectData.items.length }} 条</span>
-      </div>
-
-      <!-- 表单字段 -->
+      <!-- 表单字段（优先显示） -->
       <div v-if="selectData.fields?.length" class="form-fields">
         <div v-for="field in selectData.fields" :key="field.name" class="field-item">
           <label class="field-label">
@@ -57,6 +26,39 @@
             :rows="3"
             :placeholder="field.placeholder || ''"
           />
+        </div>
+      </div>
+
+      <!-- 选择列表（可滚动区域） -->
+      <div class="items-wrapper">
+        <div class="items">
+          <label
+            v-for="item in selectData.items"
+            :key="item.id"
+            class="item"
+            :class="{ selected: selectedIds.includes(item.id) }"
+          >
+            <input
+              type="checkbox"
+              :value="item.id"
+              v-model="selectedIds"
+            />
+            <div class="item-info">
+              <span class="item-name">{{ item.nickname || item.customer_name || '未知' }}</span>
+              <span class="item-detail">{{ item.package_name || '' }}</span>
+              <span class="item-amount" v-if="item.refund_amount">¥{{ item.refund_amount }}</span>
+              <span class="item-reason" v-if="item.reason">{{ item.reason }}</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- 全选/取消全选 -->
+        <div class="select-all">
+          <label>
+            <input type="checkbox" :checked="isAllSelected" @change="toggleAll" />
+            全选
+          </label>
+          <span class="count">已选 {{ selectedIds.length }} / {{ selectData.items.length }} 条</span>
         </div>
       </div>
     </div>
@@ -96,7 +98,6 @@ const formData = ref<Record<string, string>>({})
 const submitting = ref(false)
 
 onMounted(() => {
-  // 初始化表单数据
   if (props.selectData.fields) {
     for (const field of props.selectData.fields) {
       formData.value[field.name] = field.value ?? ''
@@ -148,6 +149,9 @@ function handleConfirm() {
   border: 1px solid var(--chat-primary);
   border-radius: var(--chat-radius-lg);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
 }
 
 .select-header {
@@ -157,6 +161,7 @@ function handleConfirm() {
   padding: var(--chat-spacing-md) var(--chat-spacing-lg);
   background: #ecf5ff;
   border-bottom: 1px solid #d9ecff;
+  flex-shrink: 0;
 
   .title {
     font-size: 14px;
@@ -167,20 +172,59 @@ function handleConfirm() {
 
 .select-body {
   padding: var(--chat-spacing-lg);
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-spacing-md);
 }
 
 .message {
   font-size: 14px;
   color: var(--chat-text);
-  margin-bottom: var(--chat-spacing-md);
+  flex-shrink: 0;
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-spacing-md);
+  flex-shrink: 0;
+  padding-bottom: var(--chat-spacing-md);
+  border-bottom: 1px solid var(--chat-border-light);
+}
+
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: var(--chat-text-secondary);
+
+  .required {
+    color: #f56c6c;
+    margin-left: 2px;
+  }
+}
+
+.items-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .items {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--chat-spacing-sm);
-  max-height: 300px;
-  overflow-y: auto;
+  min-height: 0;
 }
 
 .item {
@@ -192,6 +236,7 @@ function handleConfirm() {
   border-radius: var(--chat-radius);
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &.selected {
     border-color: var(--chat-primary);
@@ -240,8 +285,8 @@ function handleConfirm() {
   justify-content: space-between;
   padding: var(--chat-spacing-sm) 0;
   border-top: 1px solid var(--chat-border-light);
-  margin-top: var(--chat-spacing-sm);
   font-size: 13px;
+  flex-shrink: 0;
 
   label {
     display: flex;
@@ -255,37 +300,13 @@ function handleConfirm() {
   }
 }
 
-.form-fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--chat-spacing-md);
-  margin-top: var(--chat-spacing-md);
-  padding-top: var(--chat-spacing-md);
-  border-top: 1px solid var(--chat-border-light);
-}
-
-.field-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.field-label {
-  font-size: 13px;
-  color: var(--chat-text-secondary);
-
-  .required {
-    color: #f56c6c;
-    margin-left: 2px;
-  }
-}
-
 .select-footer {
   display: flex;
   justify-content: flex-end;
   gap: var(--chat-spacing-sm);
   padding: var(--chat-spacing-md) var(--chat-spacing-lg);
   border-top: 1px solid var(--chat-border-light);
+  flex-shrink: 0;
 }
 
 .cancel-btn,
