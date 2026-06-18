@@ -42,14 +42,21 @@ export interface SSEData {
   done: boolean
 }
 
+/** 选择框选项 */
+export interface SelectOption {
+  value: string | number
+  label: string
+}
+
 /** 表单字段定义 */
 export interface ConfirmField {
   name: string
-  type: 'input' | 'textarea' | 'hidden'
+  type: 'input' | 'textarea' | 'hidden' | 'select' | 'multi_select'
   label?: string
   required?: boolean
   placeholder?: string
   value?: any
+  options?: SelectOption[]  // select/multi_select 类型的选项列表
 }
 
 /** 按钮定义 */

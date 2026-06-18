@@ -8,7 +8,7 @@
       <div class="message">{{ confirmData.message }}</div>
 
       <!-- 静态详情 -->
-      <div class="details">
+      <div v-if="Object.keys(confirmData.details).length" class="details">
         <div
           v-for="(value, key) in confirmData.details"
           :key="key"
@@ -43,21 +43,51 @@
             :rows="3"
             :placeholder="field.placeholder || ''"
           />
+          <el-select
+            v-else-if="field.type === 'select'"
+            v-model="formData[field.name]"
+            :placeholder="field.placeholder || '请选择'"
+            size="default"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="opt in (field.options || [])"
+              :key="String(opt.value)"
+              :label="opt.label"
+              :value="String(opt.value)"
+            />
+          </el-select>
+          <el-select
+            v-else-if="field.type === 'multi_select'"
+            v-model="multiSelectValues[field.name]"
+            :placeholder="field.placeholder || '请选择（可多选）'"
+            multiple
+            collapse-tags
+            size="default"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="opt in (field.options || [])"
+              :key="String(opt.value)"
+              :label="opt.label"
+              :value="String(opt.value)"
+            />
+          </el-select>
         </div>
       </div>
     </div>
 
     <div class="confirm-footer">
-      <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="confirming">
+      <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="submitting">
         {{ cancelLabel }}
       </button>
       <button
         class="confirm-btn"
         @click="handleConfirm"
-        :disabled="confirming || !isFormValid"
+        :disabled="submitting || !isFormValid"
       >
-        <el-icon v-if="confirming" class="is-loading"><Loading /></el-icon>
-        {{ confirming ? '处理中...' : confirmLabel }}
+        <el-icon v-if="submitting" class="is-loading"><Loading /></el-icon>
+        {{ submitting ? '处理中...' : confirmLabel }}
       </button>
     </div>
   </div>
@@ -66,7 +96,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { WarningFilled, Loading } from '@element-plus/icons-vue'
-import type { ConfirmData, ConfirmField } from '@/types/chat'
+import type { ConfirmData } from '@/types/chat'
 
 const props = defineProps<{
   confirmData: ConfirmData
@@ -78,19 +108,16 @@ const emit = defineEmits<{
 
 const confirming = ref(false)
 const formData = ref<Record<string, string>>({})
+const multiSelectValues = ref<Record<string, string[]>>({})
 
 // 初始化表单数据
 onMounted(() => {
   if (props.confirmData.fields) {
     for (const field of props.confirmData.fields) {
-      formData.value[field.name] = field.value ?? ''
-    }
-  }
-  // 合并 hidden 字段的默认值
-  if (props.confirmData.fields) {
-    for (const field of props.confirmData.fields) {
-      if (field.type === 'hidden' && field.value !== undefined) {
-        formData.value[field.name] = String(field.value)
+      if (field.type === 'multi_select') {
+        multiSelectValues.value[field.name] = []
+      } else {
+        formData.value[field.name] = field.value ?? ''
       }
     }
   }
@@ -113,8 +140,12 @@ const cancelLabel = computed(() => {
 const isFormValid = computed(() => {
   if (!props.confirmData.fields) return true
   for (const field of props.confirmData.fields) {
-    if (field.required && !formData.value[field.name]?.trim()) {
-      return false
+    if (field.required) {
+      if (field.type === 'multi_select') {
+        if (!multiSelectValues.value[field.name]?.length) return false
+      } else {
+        if (!formData.value[field.name]?.trim()) return false
+      }
     }
   }
   return true
@@ -124,10 +155,14 @@ const isFormValid = computed(() => {
 function handleConfirm() {
   if (confirming.value || !isFormValid.value) return
   confirming.value = true
-  // 合并表单数据（含 hidden 字段）
+  // 合并表单数据
   const data: Record<string, any> = {}
   for (const [key, value] of Object.entries(formData.value)) {
     data[key] = value
+  }
+  // multi_select 字段用逗号连接
+  for (const [key, values] of Object.entries(multiSelectValues.value)) {
+    data[key] = values.join(',')
   }
   emit('confirm', true, data)
 }
