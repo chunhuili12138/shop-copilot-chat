@@ -115,6 +115,8 @@ const operations = ref<Operation[]>([]);
 onMounted(() => {
   operations.value = props.data.operations.map(op => ({
     ...op,
+    details: op.details || {},
+    fields: op.fields || [],
     selected: true,
     userInput: {},
   }));
