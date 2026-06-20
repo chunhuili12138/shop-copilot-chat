@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, reactive, watch } from 'vue'
 import type { Message, Session, SSEData, ConfirmData, SelectData, Step } from '@/types/chat'
-import { createSSEConnection, executeConfirm, executeSelect } from '@/api/chat'
+import { createSSEConnection, executeConfirm, executeSelect, batchConfirm } from '@/api/chat'
 import { getSessions, createSession, deleteSession, getSessionHistory } from '@/api/session'
 
 // localStorage key 前缀
@@ -19,6 +19,7 @@ export const useChatStore = defineStore('chat', () => {
   const showQuickQuestions = ref(true)
   const currentConfirm = ref<ConfirmData | null>(null)
   const currentSelect = ref<SelectData | null>(null)
+  const currentBatchConfirm = ref<any>(null)
   const authError = ref<string | null>(null)  // 认证错误状态
 
   // 用户信息
@@ -269,6 +270,9 @@ export const useChatStore = defineStore('chat', () => {
             case 'select':
               currentSelect.value = data.content as SelectData
               break
+            case 'batch_confirm':
+              currentBatchConfirm.value = data.content
+              break
             case 'done':
               flushBuffer()
               if (assistantMessage.steps && assistantMessage.steps.length > 0) {
@@ -379,6 +383,49 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // 批量确认操作
+  async function handleBatchConfirm(operations: any[]) {
+    if (!operations || operations.length === 0) return
+
+    isLoading.value = true
+
+    try {
+      const result = await batchConfirm(currentSessionId.value || '', operations)
+
+      const resultMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: result.msg || '批量操作完成',
+        timestamp: Date.now(),
+      }
+      messages.value.push(resultMessage)
+    } catch (error) {
+      console.error('批量确认操作失败:', error)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '批量操作失败，请重试',
+        timestamp: Date.now(),
+      }
+      messages.value.push(errorMessage)
+    } finally {
+      isLoading.value = false
+      currentBatchConfirm.value = null
+    }
+  }
+
+  // 取消批量确认
+  function handleBatchCancel() {
+    const cancelMessage: Message = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: '操作已取消',
+      timestamp: Date.now(),
+    }
+    messages.value.push(cancelMessage)
+    currentBatchConfirm.value = null
+  }
+
   // 切换全屏
   function toggleFullscreen() {
     isFullscreen.value = !isFullscreen.value
@@ -400,6 +447,7 @@ export const useChatStore = defineStore('chat', () => {
     showQuickQuestions,
     currentConfirm,
     currentSelect,
+    currentBatchConfirm,
     authError,
     token,
     shopId,
@@ -420,6 +468,8 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     handleConfirm,
     handleSelect,
+    handleBatchConfirm,
+    handleBatchCancel,
     toggleFullscreen,
     toggleSessionList,
     saveSessionId,

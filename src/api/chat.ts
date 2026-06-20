@@ -176,3 +176,32 @@ export async function executeSelect(
   
   return response.json()
 }
+
+/**
+ * 执行批量确认操作
+ */
+export async function batchConfirm(
+  sessionId: string,
+  operations: Array<{ action: string; params: Record<string, any> }>
+): Promise<any> {
+  const store = useChatStore()
+  
+  const response = await fetch(`${BASE_URL}/api/chat/batch_confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer-${store.shopId}-${store.token}`,
+    },
+    body: JSON.stringify({
+      session_id: sessionId,
+      operations,
+    }),
+  })
+  
+  if (!response.ok) {
+    const errText = await response.text().catch(() => response.statusText)
+    throw new Error(`批量操作失败 (${response.status}): ${errText}`)
+  }
+  
+  return response.json()
+}

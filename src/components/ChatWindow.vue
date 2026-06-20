@@ -55,6 +55,15 @@
           @cancel="store.currentSelect = null"
         />
 
+        <!-- 批量确认框 -->
+        <BatchConfirmCard
+          v-if="store.currentBatchConfirm"
+          :data="store.currentBatchConfirm"
+          :loading="store.isLoading"
+          @confirm="(operations) => store.handleBatchConfirm(operations)"
+          @cancel="store.handleBatchCancel()"
+        />
+
         <!-- 快捷问题 -->
         <QuickQuestions
           v-if="store.showQuickQuestions && store.messages.length === 0 && !store.authError"
@@ -90,6 +99,7 @@ import SessionList from './SessionList.vue'
 import MessageList from './MessageList.vue'
 import ConfirmCard from './ConfirmCard.vue'
 import SelectCard from './SelectCard.vue'
+import BatchConfirmCard from './BatchConfirmCard.vue'
 import QuickQuestions from './QuickQuestions.vue'
 import MessageInput from './MessageInput.vue'
 
