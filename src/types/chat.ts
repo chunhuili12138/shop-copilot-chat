@@ -14,7 +14,7 @@ export interface Message {
 }
 
 export interface Step {
-  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'error'
+  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'error' | 'plan'
   content: string
   step: string
   done: boolean
@@ -36,7 +36,7 @@ export interface QuickQuestion {
 }
 
 export interface SSEData {
-  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'data' | 'done' | 'error' | 'confirm' | 'select'
+  type: 'thinking' | 'processing' | 'tool_result' | 'answer' | 'data' | 'done' | 'error' | 'confirm' | 'select' | 'batch_confirm' | 'plan' | 'warning' | 'success' | 'quick_questions'
   content: any
   step: string
   done: boolean

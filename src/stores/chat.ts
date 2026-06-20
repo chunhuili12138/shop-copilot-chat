@@ -243,6 +243,7 @@ export const useChatStore = defineStore('chat', () => {
           switch (data.type) {
             case 'thinking':
             case 'processing':
+            case 'plan':
             case 'tool_result':
               assistantMessage.steps!.push({
                 type: data.type as Step['type'],
@@ -279,6 +280,20 @@ export const useChatStore = defineStore('chat', () => {
               if (Array.isArray(data.content)) {
                 quickQuestions.value = data.content
               }
+              break
+            case 'warning':
+              // 评审警告，显示为系统消息
+              flushBuffer()
+              assistantMessage.content = `⚠️ ${data.content}`
+              break
+            case 'success':
+              // 操作成功提示
+              assistantMessage.steps!.push({
+                type: 'processing',
+                content: `✅ ${data.content}`,
+                step: data.step,
+                done: true,
+              })
               break
             case 'done':
               flushBuffer()
