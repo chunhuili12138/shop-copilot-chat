@@ -20,6 +20,7 @@ export const useChatStore = defineStore('chat', () => {
   const currentConfirm = ref<ConfirmData | null>(null)
   const currentSelect = ref<SelectData | null>(null)
   const currentBatchConfirm = ref<any>(null)
+  const quickQuestions = ref<string[]>([])  // 快速问题建议
   const authError = ref<string | null>(null)  // 认证错误状态
 
   // 用户信息
@@ -273,6 +274,12 @@ export const useChatStore = defineStore('chat', () => {
             case 'batch_confirm':
               currentBatchConfirm.value = data.content
               break
+            case 'quick_questions':
+              // 快速问题建议（来自追问流程）
+              if (Array.isArray(data.content)) {
+                quickQuestions.value = data.content
+              }
+              break
             case 'done':
               flushBuffer()
               if (assistantMessage.steps && assistantMessage.steps.length > 0) {
@@ -448,6 +455,7 @@ export const useChatStore = defineStore('chat', () => {
     currentConfirm,
     currentSelect,
     currentBatchConfirm,
+    quickQuestions,
     authError,
     token,
     shopId,
