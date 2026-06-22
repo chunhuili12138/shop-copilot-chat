@@ -194,6 +194,8 @@ function handleConfirm() {
 
 .confirm-body {
   padding: var(--chat-spacing-lg);
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .message {

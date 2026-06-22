@@ -168,6 +168,8 @@ const handleCancel = () => {
 
   .confirm-body {
     padding: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
 
     .operations {
       .operation-item {
