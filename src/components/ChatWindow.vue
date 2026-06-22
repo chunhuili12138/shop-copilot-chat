@@ -84,10 +84,19 @@
           <button class="dismiss-btn" @click="store.authError = null">×</button>
         </div>
 
+        <!-- 图片预览 -->
+        <div v-if="pendingImageUrl" class="image-preview-bar">
+          <div class="preview-container">
+            <img :src="getImageFullUrl(pendingImageUrl)" class="preview-image" />
+            <button class="remove-btn" @click="pendingImageUrl = null" title="移除图片">×</button>
+          </div>
+          <span class="preview-hint">图片将在发送时附带</span>
+        </div>
+
         <!-- 输入框 -->
         <MessageInput
-          :disabled="!!store.authError"
-          :placeholder="store.authError ? '认证失败，无法发送消息' : '输入您的问题...'"
+          :disabled="!!store.authError || uploading"
+          :placeholder="uploading ? '图片上传中...' : (store.authError ? '认证失败，无法发送消息' : '输入您的问题...')"
           :quick-question-text="quickQuestionText"
           @send="handleSend"
           @upload="handleUpload"
@@ -149,6 +158,14 @@ async function handleUpload(file: File) {
   } finally {
     uploading.value = false
   }
+}
+
+// 获取图片完整URL（用于预览）
+function getImageFullUrl(path: string): string {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  const base = import.meta.env.VITE_API_BASE_URL || ''
+  return `${base}${path}`
 }
 
 // 处理快捷问题
@@ -343,6 +360,60 @@ onUnmounted(() => {
     &:hover {
       background: #fecaca;
     }
+  }
+}
+
+.image-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin: 0 12px 8px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  flex-shrink: 0;
+
+  .preview-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .preview-image {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .remove-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+
+    &:hover {
+      background: #dc2626;
+    }
+  }
+
+  .preview-hint {
+    font-size: 12px;
+    color: #6b7280;
   }
 }
 </style>
