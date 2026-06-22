@@ -101,6 +101,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
+import { uploadFile } from '@/api/upload'
 import type { Message } from '@/types/chat'
 import SessionList from './SessionList.vue'
 import MessageList from './MessageList.vue'
@@ -115,6 +116,8 @@ const store = useChatStore()
 // 快捷问题文本（点击后填入输入框，不直接发送）
 const quickQuestionText = ref('')
 const initialLoading = ref(true)  // 初始加载状态
+const pendingImageUrl = ref<string | null>(null)  // 待发送的图片URL
+const uploading = ref(false)  // 上传状态
 
 // 计算第一个问题
 const firstQuestion = computed(() => {
@@ -130,13 +133,22 @@ const firstQuestion = computed(() => {
 function handleSend(message: string) {
   // 清除动态快捷问题
   store.quickQuestions = []
-  store.sendMessage(message)
+  store.sendMessage(message, pendingImageUrl.value || undefined)
+  pendingImageUrl.value = null  // 清除待发送图片
 }
 
 // 处理文件上传
-function handleUpload(file: File) {
-  // TODO: 实现文件上传
-  console.log('上传文件:', file)
+async function handleUpload(file: File) {
+  uploading.value = true
+  try {
+    const result = await uploadFile(file)
+    pendingImageUrl.value = result.file_url
+    console.log('上传成功:', result.file_url)
+  } catch (error) {
+    console.error('上传失败:', error)
+  } finally {
+    uploading.value = false
+  }
 }
 
 // 处理快捷问题
