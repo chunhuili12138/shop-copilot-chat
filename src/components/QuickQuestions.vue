@@ -3,7 +3,7 @@
     <div class="questions-title">快捷问题</div>
     <div class="questions-list">
       <button
-        v-for="question in questions"
+        v-for="question in displayQuestions"
         :key="question.id"
         class="question-btn"
         @click="$emit('select', question.text)"
@@ -16,13 +16,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { QuickQuestion } from '@/types/chat'
+
+const props = defineProps<{
+  questions?: string[] | QuickQuestion[]
+}>()
 
 defineEmits<{
   select: [question: string]
 }>()
 
-const questions: QuickQuestion[] = [
+const defaultQuestions: QuickQuestion[] = [
   { id: '1', text: '本月营收是多少？', icon: '💰', category: '查询' },
   { id: '2', text: '库存不足的物料有哪些？', icon: '📦', category: '查询' },
   { id: '3', text: '今天的排班表是什么？', icon: '📅', category: '查询' },
@@ -30,6 +35,24 @@ const questions: QuickQuestion[] = [
   { id: '5', text: '分析本月经营情况', icon: '📊', category: '分析' },
   { id: '6', text: '查询顾客张三的信息', icon: '👤', category: '查询' },
 ]
+
+const displayQuestions = computed(() => {
+  if (!props.questions || props.questions.length === 0) {
+    return defaultQuestions
+  }
+  
+  // If questions are strings (from SSE), convert to QuickQuestion format
+  if (typeof props.questions[0] === 'string') {
+    return (props.questions as string[]).map((text, index) => ({
+      id: `dynamic_${index}`,
+      text,
+      icon: '💡',
+      category: '建议'
+    }))
+  }
+  
+  return props.questions as QuickQuestion[]
+})
 </script>
 
 <style scoped lang="scss">

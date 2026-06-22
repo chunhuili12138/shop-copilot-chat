@@ -64,9 +64,16 @@
           @cancel="store.handleBatchCancel()"
         />
 
-        <!-- 快捷问题 -->
+        <!-- 快捷问题（空聊天状态） -->
         <QuickQuestions
           v-if="store.showQuickQuestions && store.messages.length === 0 && !store.authError"
+          @select="handleQuickQuestion"
+        />
+
+        <!-- 动态快捷问题（对话中，由 quick_questions SSE 事件触发） -->
+        <QuickQuestions
+          v-if="store.quickQuestions.length > 0 && store.messages.length > 0"
+          :questions="store.quickQuestions"
           @select="handleQuickQuestion"
         />
 
@@ -121,6 +128,8 @@ const firstQuestion = computed(() => {
 
 // 处理发送消息
 function handleSend(message: string) {
+  // 清除动态快捷问题
+  store.quickQuestions = []
   store.sendMessage(message)
 }
 
