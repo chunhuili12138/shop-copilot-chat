@@ -78,16 +78,16 @@
     </div>
 
     <div class="confirm-footer">
-      <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="submitting">
+      <button class="cancel-btn" @click="$emit('confirm', false)" :disabled="confirming">
         {{ cancelLabel }}
       </button>
       <button
         class="confirm-btn"
         @click="handleConfirm"
-        :disabled="submitting || !isFormValid"
+        :disabled="confirming || !isFormValid"
       >
-        <el-icon v-if="submitting" class="is-loading"><Loading /></el-icon>
-        {{ submitting ? '处理中...' : confirmLabel }}
+        <el-icon v-if="confirming" class="is-loading"><Loading /></el-icon>
+        {{ confirming ? '处理中...' : confirmLabel }}
       </button>
     </div>
   </div>

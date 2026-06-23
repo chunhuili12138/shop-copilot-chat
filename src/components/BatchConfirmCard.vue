@@ -43,13 +43,13 @@
               </label>
               <el-input
                 v-if="field.type === 'input'"
-                v-model="op.userInput[field.name]"
+                v-model="op.userInput![field.name]"
                 :placeholder="field.placeholder || ''"
                 size="small"
               />
               <el-input
                 v-else-if="field.type === 'textarea'"
-                v-model="op.userInput[field.name]"
+                v-model="op.userInput![field.name]"
                 type="textarea"
                 :rows="2"
                 :placeholder="field.placeholder || ''"

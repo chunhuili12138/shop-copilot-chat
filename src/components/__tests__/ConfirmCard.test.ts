@@ -9,16 +9,17 @@ vi.mock('@element-plus/icons-vue', () => ({
 }))
 
 const defaultProps = {
+  type: 'confirm' as const,
   title: '确认拒绝退款',
   message: '确定要拒绝猪八戒的退款申请吗？',
   details: {
     '顾客': '猪八戒',
     '退款金额': '¥24.90',
   },
-  fields: [],
+  fields: [] as Array<{ name: string; type: 'input' | 'select' | 'textarea' | 'hidden' | 'multi_select'; label: string; required: boolean; placeholder?: string }>,
   buttons: [
-    { type: 'confirm', label: '确认拒绝' },
-    { type: 'cancel', label: '取消' },
+    { type: 'confirm' as const, label: '确认拒绝' },
+    { type: 'cancel' as const, label: '取消' },
   ],
   action: 'refund_reject',
   params: { shop_id: 5, refund_id: 6 },
@@ -58,7 +59,7 @@ describe('ConfirmCard', () => {
     const propsWithFields = {
       ...defaultProps,
       fields: [
-        { name: 'reason', type: 'input', label: '拒绝理由', required: true, placeholder: '请输入拒绝原因' },
+        { name: 'reason', type: 'input' as const, label: '拒绝理由', required: true, placeholder: '请输入拒绝原因' },
       ],
     }
 
@@ -100,7 +101,7 @@ describe('ConfirmCard', () => {
     const propsWithFields = {
       ...defaultProps,
       fields: [
-        { name: 'reason', type: 'input', label: '拒绝理由', required: true },
+        { name: 'reason', type: 'input' as const, label: '拒绝理由', required: true },
       ],
     }
 
