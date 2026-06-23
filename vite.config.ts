@@ -7,6 +7,43 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8000'
   
+  // 检查构建模式
+  const isLibBuild = process.env.BUILD_TYPE === 'lib';
+  
+  let buildConfig = {};
+  
+  if (isLibBuild) {
+    // 库模式配置 - 用于其他项目集成
+    buildConfig = {
+      lib: {
+        entry: resolve(__dirname, 'src/lib.ts'),
+        name: 'ShopCopilot',
+        fileName: 'shop-copilot',
+        formats: ['umd'],
+      },
+      rollupOptions: {
+        output: {
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name === 'style.css') return 'shop-copilot.css'
+            return assetInfo.name || 'asset'
+          },
+        },
+      },
+    };
+  } else {
+    // 应用模式配置 - 用于独立部署
+    buildConfig = {
+      rollupOptions: {
+        input: resolve(__dirname, 'index.html'),
+        output: {
+          assetFileNames: 'assets/[name].[hash].[ext]',
+          chunkFileNames: 'assets/[name].[hash].js',
+          entryFileNames: 'assets/[name].[hash].js',
+        },
+      },
+    };
+  }
+  
   return {
     plugins: [vue()],
     resolve: {
@@ -33,21 +70,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      lib: {
-        entry: resolve(__dirname, 'src/lib.ts'),
-        name: 'ShopCopilot',
-        fileName: 'shop-copilot',
-        formats: ['umd'],
-      },
-      rollupOptions: {
-        output: {
-          assetFileNames: (assetInfo) => {
-            if (assetInfo.name === 'style.css') return 'shop-copilot.css'
-            return assetInfo.name || 'asset'
-          },
-        },
-      },
-      outDir: 'dist',
+      ...buildConfig,
+      outDir: isLibBuild ? 'dist-lib' : 'dist',
       sourcemap: false,
       cssCodeSplit: false,
     },

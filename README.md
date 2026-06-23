@@ -82,16 +82,13 @@ pnpm dev
 ### 构建生产版本
 
 ```bash
-pnpm build
+pnpm build:app      # 构建为标准Web应用，输出到 dist/
+pnpm build:lib      # 构建为UMD库，输出到 dist-lib/
+pnpm build:prod     # 构建生产环境Web应用，输出到 dist/
+pnpm build:prod-lib # 构建生产环境UMD库，输出到 dist-lib/
 ```
 
-### 构建 UMD 库（用于嵌入）
-
-```bash
-pnpm build
-# 输出：dist/shop-copilot.umd.js
-# 输出：dist/shop-copilot.css
-```
+UMD库构建用于将ShopCopilot集成到其他项目中，Web应用构建用于独立部署完整的Web应用。
 
 ### 运行测试
 
