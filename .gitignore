@@ -30,6 +30,8 @@ npm-debug.log*
 # Env
 .env
 .env.local
+.env.production
+.env.staging
 .env.*.local
 
 # Lock files (keep package-lock.json)
