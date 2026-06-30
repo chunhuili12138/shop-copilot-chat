@@ -31,8 +31,8 @@
         <el-image
           v-for="(img, index) in message.images"
           :key="index"
-          :src="img"
-          :preview-src-list="message.images"
+          :src="getImageFullUrl(img)"
+          :preview-src-list="message.images.map(i => getImageFullUrl(i))"
           :initial-index="index"
           fit="cover"
           class="message-image"
@@ -72,6 +72,14 @@ const isError = computed(() => {
   
   return false
 })
+
+// 获取图片完整URL
+function getImageFullUrl(path: string): string {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  const base = import.meta.env.VITE_API_BASE_URL || ''
+  return `${base}${path}`
+}
 
 // 格式化时间
 const formattedTime = computed(() => {
