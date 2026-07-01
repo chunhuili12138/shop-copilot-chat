@@ -19,17 +19,21 @@ export function createSSEConnection(
   message: string,
   sessionId: string,
   callbacks: SSECallbacks,
-  imageUrl?: string
+  imageUrl?: string,
+  fileInfo?: { url: string; name: string; type: string; size: number; category: 'image' | 'document'; content?: string }
 ): { close: () => void } {
   const store = useChatStore()
   const controller = new AbortController()
 
-  const body: Record<string, string> = {
+  const body: Record<string, any> = {
     message,
     session_id: sessionId,
   }
   if (imageUrl) {
     body.image_url = imageUrl
+  }
+  if (fileInfo) {
+    body.file_info = fileInfo
   }
 
   fetch(`${BASE_URL}/api/chat/stream`, {

@@ -221,12 +221,16 @@ function escapeHtml(text: string): string {
     border-collapse: collapse;
     width: 100%;
     margin: 8px 0;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 
     th,
     td {
       border: 1px solid #e5e6eb;
       padding: 8px;
       text-align: left;
+      white-space: nowrap;
     }
 
     th {

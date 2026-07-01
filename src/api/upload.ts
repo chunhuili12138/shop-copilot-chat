@@ -14,6 +14,7 @@ export async function uploadFile(file: File): Promise<{
   file_size: number
   content?: string
   type?: string
+  file_category?: 'image' | 'document'
 }> {
   const store = useChatStore()
 

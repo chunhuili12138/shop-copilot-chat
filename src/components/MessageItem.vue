@@ -39,6 +39,25 @@
         />
       </div>
 
+      <!-- 文件附件 -->
+      <div v-if="message.files?.length" class="files">
+        <div
+          v-for="(file, index) in message.files"
+          :key="index"
+          class="file-card"
+          @click="openFile(file.url)"
+          :title="'点击下载 ' + file.name"
+        >
+          <span class="file-icon" :style="{ background: getFileColor(file.name) }">
+            {{ getFileExt(file.name) }}
+          </span>
+          <div class="file-info">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">{{ formatSize(file.size) }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 时间 -->
       <div class="time">{{ formattedTime }}</div>
     </div>
@@ -48,6 +67,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RefreshRight } from '@element-plus/icons-vue'
+import { getImageFullUrl, getFileExt, getFileColor, formatSize } from '@/utils/file'
 import type { Message } from '@/types/chat'
 import StepCard from './StepCard.vue'
 import { MessageRenderer } from './DataDisplay'
@@ -73,14 +93,6 @@ const isError = computed(() => {
   return false
 })
 
-// 获取图片完整URL
-function getImageFullUrl(path: string): string {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  const base = import.meta.env.VITE_FILE_BASE_URL || import.meta.env.VITE_API_BASE_URL || ''
-  return `${base}${path}`
-}
-
 // 格式化时间
 const formattedTime = computed(() => {
   const date = new Date(props.message.timestamp)
@@ -89,6 +101,12 @@ const formattedTime = computed(() => {
     minute: '2-digit',
   })
 })
+
+// 打开/下载文件
+function openFile(url: string) {
+  const fullUrl = getImageFullUrl(url)
+  window.open(fullUrl, '_blank', 'noopener')
+}
 
 // 重试
 function handleRetry() {
@@ -181,6 +199,62 @@ function handleRetry() {
     max-height: 200px;
     border-radius: var(--chat-radius);
     cursor: pointer;
+  }
+}
+
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+
+  .file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .file-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .file-name {
+    font-size: 13px;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    font-size: 11px;
+    color: #9ca3af;
   }
 }
 

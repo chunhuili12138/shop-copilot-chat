@@ -30,7 +30,7 @@
     <input
       ref="fileInputRef"
       type="file"
-      accept="image/*,.txt,.md"
+      accept="image/*,.txt,.md,.pdf,.xlsx,.xls,.docx,.doc,.csv"
       style="display: none"
       @change="handleFileChange"
     />

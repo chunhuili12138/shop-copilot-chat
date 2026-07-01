@@ -100,4 +100,5 @@ export interface FileInfo {
   type: string
   size: number
   content?: string
+  category?: 'image' | 'document'
 }

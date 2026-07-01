@@ -181,7 +181,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 发送消息
-  async function sendMessage(message: string, imageUrl?: string) {
+  async function sendMessage(message: string, fileInfo?: { url: string; name: string; type: string; size: number; category: 'image' | 'document'; content?: string }) {
     if (!currentSessionId.value) {
       await handleCreateSession()
     }
@@ -197,7 +197,15 @@ export const useChatStore = defineStore('chat', () => {
       id: Date.now().toString(),
       role: 'user',
       content: message,
-      images: imageUrl ? [imageUrl] : [],
+      images: fileInfo?.category === 'image' ? [fileInfo.url] : [],
+      files: fileInfo && fileInfo.category !== 'image' ? [{
+        url: fileInfo.url,
+        name: fileInfo.name,
+        type: fileInfo.type,
+        size: fileInfo.size,
+        category: fileInfo.category,
+        content: fileInfo.content,
+      }] : [],
       timestamp: Date.now(),
     }
     messages.value.push(userMessage)
@@ -327,7 +335,8 @@ export const useChatStore = defineStore('chat', () => {
           }
         },
       },
-      imageUrl,
+      fileInfo?.category === 'image' ? fileInfo.url : undefined,
+      fileInfo,
     )
   }
 

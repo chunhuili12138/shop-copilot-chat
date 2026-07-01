@@ -84,19 +84,36 @@
           <button class="dismiss-btn" @click="store.authError = null">×</button>
         </div>
 
-        <!-- 图片预览 -->
-        <div v-if="pendingImageUrl" class="image-preview-bar">
-          <div class="preview-container">
-            <img :src="getImageFullUrl(pendingImageUrl)" class="preview-image" />
-            <button class="remove-btn" @click="pendingImageUrl = null" title="移除图片">×</button>
-          </div>
-          <span class="preview-hint">图片将在发送时附带</span>
+        <!-- 文件预览 -->
+        <div v-if="pendingFile" class="file-preview-bar">
+          <!-- 图片预览 -->
+          <template v-if="pendingFile.category === 'image'">
+            <div class="preview-container">
+              <img :src="getImageFullUrl(pendingFile.url)" class="preview-image" />
+              <button class="remove-btn" @click="pendingFile = null" title="移除">×</button>
+            </div>
+            <span class="preview-hint">图片将在发送时附带</span>
+          </template>
+          <!-- 文档预览 -->
+          <template v-else>
+            <div class="preview-container">
+              <span class="file-icon" :style="{ background: getFileColor(pendingFile.name) }">
+                {{ getFileExt(pendingFile.name) }}
+              </span>
+              <div class="file-info">
+                <span class="file-name">{{ pendingFile.name }}</span>
+                <span class="file-size">{{ formatSize(pendingFile.size) }}</span>
+              </div>
+              <button class="remove-btn" @click="pendingFile = null" title="移除">×</button>
+            </div>
+            <span class="preview-hint">文件将在发送时附带</span>
+          </template>
         </div>
 
         <!-- 输入框 -->
         <MessageInput
           :disabled="!!store.authError || uploading"
-          :placeholder="uploading ? '图片上传中...' : (store.authError ? '认证失败，无法发送消息' : '输入您的问题...')"
+          :placeholder="uploading ? '文件上传中...' : (store.authError ? '认证失败，无法发送消息' : '输入您的问题...')"
           :quick-question-text="quickQuestionText"
           @send="handleSend"
           @upload="handleUpload"
@@ -109,8 +126,10 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { WarningFilled } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/stores/chat'
 import { uploadFile } from '@/api/upload'
+import { getImageFullUrl, getFileExt, getFileColor, formatSize } from '@/utils/file'
 import type { Message } from '@/types/chat'
 import SessionList from './SessionList.vue'
 import MessageList from './MessageList.vue'
@@ -125,7 +144,17 @@ const store = useChatStore()
 // 快捷问题文本（点击后填入输入框，不直接发送）
 const quickQuestionText = ref('')
 const initialLoading = ref(true)  // 初始加载状态
-const pendingImageUrl = ref<string | null>(null)  // 待发送的图片URL
+
+// 待发送文件信息
+interface PendingFile {
+  url: string
+  name: string
+  type: string
+  size: number
+  category: 'image' | 'document'
+  content?: string
+}
+const pendingFile = ref<PendingFile | null>(null)
 const uploading = ref(false)  // 上传状态
 
 // 计算第一个问题
@@ -142,8 +171,8 @@ const firstQuestion = computed(() => {
 function handleSend(message: string) {
   // 清除动态快捷问题
   store.quickQuestions = []
-  store.sendMessage(message, pendingImageUrl.value || undefined)
-  pendingImageUrl.value = null  // 清除待发送图片
+  store.sendMessage(message, pendingFile.value || undefined)
+  pendingFile.value = null
 }
 
 // 处理文件上传
@@ -151,21 +180,20 @@ async function handleUpload(file: File) {
   uploading.value = true
   try {
     const result = await uploadFile(file)
-    pendingImageUrl.value = result.file_url
-    console.log('上传成功:', result.file_url)
-  } catch (error) {
-    console.error('上传失败:', error)
+    pendingFile.value = {
+      url: result.file_url,
+      name: result.file_name,
+      type: result.file_type,
+      size: result.file_size,
+      category: result.file_category || 'document',
+      content: result.content || '',
+    }
+  } catch (error: any) {
+    const msg = error?.message || '文件上传失败，请重试'
+    ElMessage({ message: msg, type: 'error', duration: 3000 })
   } finally {
     uploading.value = false
   }
-}
-
-// 获取图片完整URL（用于预览）
-function getImageFullUrl(path: string): string {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  const base = import.meta.env.VITE_FILE_BASE_URL || import.meta.env.VITE_API_BASE_URL || ''
-  return `${base}${path}`
 }
 
 // 处理快捷问题
@@ -182,8 +210,31 @@ function handleRetry(message: Message) {
     if (userMessage.role === 'user') {
       // 删除错误消息和用户消息
       store.messages.splice(messageIndex - 1, 2)
+
+      // 重建文件信息（重试时保留原文件上下文）
+      let retryFileInfo: PendingFile | undefined
+      if (userMessage.images?.length) {
+        retryFileInfo = {
+          url: userMessage.images[0],
+          name: '',
+          type: '',
+          size: 0,
+          category: 'image',
+        }
+      } else if (userMessage.files?.length) {
+        const f = userMessage.files[0]
+        retryFileInfo = {
+          url: f.url,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          category: f.category || 'document',
+          content: f.content,
+        }
+      }
+
       // 重新发送
-      store.sendMessage(userMessage.content)
+      store.sendMessage(userMessage.content, retryFileInfo)
     }
   }
 }
@@ -363,7 +414,7 @@ onUnmounted(() => {
   }
 }
 
-.image-preview-bar {
+.file-preview-bar {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -387,6 +438,38 @@ onUnmounted(() => {
     object-fit: cover;
     border-radius: 4px;
     border: 1px solid #e5e7eb;
+  }
+
+  .file-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .file-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .file-name {
+    font-size: 13px;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    font-size: 11px;
+    color: #9ca3af;
   }
 
   .remove-btn {
